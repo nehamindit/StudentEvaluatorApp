@@ -3,144 +3,287 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Answer Evaluator</title>
+  <title>Student Answer Evaluator | Gen AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
-      padding: 20px;
+    :root {
+      --primary-color: #1a73e8;
+      --background-color: #f5f5f5;
+      --card-color: #ffffff;
+      --border-radius: 8px;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      --low-score: #f28b82;
+      --mid-score: #fbbc04;
+      --high-score: #81c995;
     }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--background-color);
+      margin: 0;
+      padding: 20px;
+      color: #202124;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: auto;
+      background: var(--card-color);
+      padding: 40px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+    }
+
     h1 {
       text-align: center;
-      color: #333;
+      color: var(--primary-color);
+      font-weight: 500;
+      margin-bottom: 10px;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+    .description {
+      text-align: center;
+      font-size: 16px;
+      color: #5f6368;
+      margin-bottom: 30px;
     }
+
+    label {
+      font-weight: 500;
+      margin-top: 20px;
+      display: block;
+      color: #5f6368;
+    }
+
     textarea, input, select, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 10px;
       margin-bottom: 20px;
       border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 14px;
+      border: 1px solid #dadce0;
+      font-size: 15px;
+      box-sizing: border-box;
     }
+
     button {
-      background-color: #4CAF50;
+      background-color: var(--primary-color);
       color: white;
+      font-weight: 500;
       border: none;
+      transition: background-color 0.3s ease;
       cursor: pointer;
     }
+
     button:hover {
-      background-color: #45a049;
+      background-color: #155ab6;
     }
-    .results {
-      white-space: pre-wrap;
-      background-color: #f0f0f0;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-    }
+
     #exportBtn {
-      background-color: #007BFF;
-      margin-top: -10px;
+      background-color: #34a853;
     }
     #exportBtn:hover {
-      background-color: #0056b3;
+      background-color: #0c7b33;
+    }
+
+    .rubric-item input {
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #e8f0fe;
+      font-weight: 500;
+    }
+
+    .score-low {
+      background-color: var(--low-score);
+    }
+
+    .score-mid {
+      background-color: var(--mid-score);
+    }
+
+    .score-high {
+      background-color: var(--high-score);
+    }
+
+    #spinner {
+      display: none;
+      text-align: center;
+      font-size: 16px;
+      color: #666;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🧠 Student Answer Evaluator (POC)</h1>
+    <h1>Student Answer Evaluator</h1>
+    <div class="description">
+      This is a Proof of Concept (POC) application that uses Generative AI to evaluate student responses against a rubric.
+      The system assigns scores and provides constructive feedback based on customizable criteria.
+    </div>
 
-    <label for="model">🤖 Choose Model</label>
+    <label for="model">Choose Model</label>
     <select id="model">
       <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral 7B Instruct</option>
       <option value="tiiuae/falcon-7b-instruct">Falcon 7B Instruct</option>
       <option value="google/flan-t5-large">FLAN-T5 Large</option>
     </select>
 
-    <label for="question">❓ Question</label>
+    <label for="question">Question</label>
     <textarea id="question">Explain the importance of photosynthesis in plants.</textarea>
 
-    <label for="rubric">📋 Rubric (one point per line)</label>
-    <textarea id="rubric">Mentions that photosynthesis is how plants make food.
-Explains the role of sunlight, carbon dioxide, and water.
-Describes oxygen release.
-Includes importance to the ecosystem.</textarea>
+    <label for="rubricContainer">Rubric Points</label>
+    <div id="rubricContainer"></div>
 
-    <label for="answers">👨‍🎓 Student Answers (format: Name: Answer)</label>
-    <textarea id="answers">Alice: Photosynthesis helps plants make food using sunlight.
-Bob: Plants use sunlight and water to make food and release oxygen.
-Charlie: It helps plants and gives oxygen to animals.</textarea>
+    <label for="names">Student Names (one per line)</label>
+    <textarea id="names">Alice
+Bob
+Charlie</textarea>
 
-    <button onclick="evaluateAnswers()">✨ Evaluate</button>
-    <button id="exportBtn" onclick="exportCSV()">📄 Export to CSV</button>
+    <label for="answers">Student Answers (in order)</label>
+    <textarea id="answers">Photosynthesis helps plants make food using sunlight.
+Plants use sunlight and water to make food and release oxygen.
+It helps plants and gives oxygen to animals.</textarea>
 
-    <div class="results" id="results"></div>
+    <button onclick="evaluateAnswers()">Evaluate Answers</button>
+    <button id="exportBtn" onclick="exportCSV()">Export to CSV</button>
+
+    <div id="spinner">⏳ Evaluating... Please wait...</div>
+    <div id="results"></div>
+    <canvas id="scoreChart" style="max-height: 400px; margin-top: 30px;"></canvas>
   </div>
 
   <script>
-    // Embed your Hugging Face token here for POC (for production use environment variables)
     const HUGGINGFACE_API_TOKEN = "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";
-    let resultsCSV = [['Name','Scores','Total','Suggestion']];
+    let resultsCSV = [['Name','Answer','Scores','Total','Suggestion']];
+
+    const defaultRubrics = [
+      "Mentions that photosynthesis is how plants make food.",
+      "Explains the role of sunlight, carbon dioxide, and water.",
+      "Describes oxygen release.",
+      "Includes importance to the ecosystem."
+    ];
+
+    function populateDefaultRubrics() {
+      const container = document.getElementById('rubricContainer');
+      container.innerHTML = '';
+      defaultRubrics.forEach(text => {
+        const div = document.createElement('div');
+        div.className = 'rubric-item';
+        div.innerHTML = `<input type="text" value="${text}" readonly>`;
+        container.appendChild(div);
+      });
+    }
+
+    function getRubricPoints() {
+      return Array.from(document.querySelectorAll('#rubricContainer input'))
+                  .map(input => input.value.trim())
+                  .filter(Boolean);
+    }
+
+    function getScoreColorClass(total, max) {
+      const score = parseInt(total);
+      if (score < max * 0.4) return 'score-low';
+      else if (score < max * 0.75) return 'score-mid';
+      else return 'score-high';
+    }
 
     async function evaluateAnswers() {
-  const token = HUGGINGFACE_API_TOKEN;
-  const model = document.getElementById("model").value;
-  const question = document.getElementById("question").value;
-  const rubric = document.getElementById("rubric").value.split('\n').filter(Boolean);
-  const rawAnswers = document.getElementById("answers").value.split('\n');
-  const outputDiv = document.getElementById("results");
+      const token = HUGGINGFACE_API_TOKEN;
+      const model = document.getElementById("model").value;
+      const question = document.getElementById("question").value;
+      const rubric = getRubricPoints();
+      const names = document.getElementById("names").value.trim().split("\n");
+      const answers = document.getElementById("answers").value.trim().split("\n");
 
-  outputDiv.innerHTML = "⏳ Evaluating... Please wait...";
-  resultsCSV = [['Name','Scores','Total','Suggestion']];
-  let results = "";
+      const outputDiv = document.getElementById("results");
+      const spinner = document.getElementById("spinner");
+      const chartCanvas = document.getElementById("scoreChart");
 
-  for (let line of rawAnswers) {
-    if (!line.includes(":")) continue;
-    const [name, ...rest] = line.split(":");
-    const answer = rest.join(":").trim();
+      outputDiv.innerHTML = "";
+      spinner.style.display = 'block';
+      resultsCSV = [['Name','Answer','Scores','Total','Suggestion']];
+      let tableHTML = `<table><tr><th>Name</th><th>Answer</th><th>Scores</th><th>Total</th><th>Suggestion</th></tr>`;
+      let labels = [], data = [];
 
-    const rubricList = rubric.map((r, i) => `${i+1}. ${r}`).join("\n");
-    const prompt = `You are evaluating a student's answer based on a rubric.\n\nQuestion: ${question}\nRubric:\n${rubricList}\n\nStudent Answer: ${answer}\n\nFor each rubric point, give a score from 0 to 2.\nSum them to get a total out of ${rubric.length * 2}.\nAlso give a brief suggestion.\nRespond in this format:\n\nScores: 1, 2, 0, 2\nTotal: 5/${rubric.length * 2}\nSuggestion: <your suggestion>`;
+      if (Chart.getChart(chartCanvas)) {
+        Chart.getChart(chartCanvas).destroy();
+      }
 
-    const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ inputs: prompt })
-    });
+      const rubricList = rubric.map((r, i) => `${i+1}. ${r}`).join("\n");
+      const prompts = answers.map((answer, i) => `You are a knowledgeable and fair evaluator grading student responses.\nQuestion: ${question}\nRubric:\n${rubricList}\nStudent Answer: ${answer}\n\nFor each rubric point, assign a score from 0 to 2.\nSum these for a total out of ${rubric.length * 2}.\nGive a constructive suggestion for improvement.\nFormat:\nScores: x, x, x, x\nTotal: x/${rubric.length * 2}\nSuggestion: <your suggestion>`);
 
-    let json = await response.json();
-    let fullText = json[0]?.generated_text || "";
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i];
+        const answer = answers[i] || "";
+        let scores = "x, x, x, x", total = `0/${rubric.length * 2}`, suggestion = "Could not extract response.";
 
-    // Extract Scores, Total and Suggestion using regex
-    const match = fullText.match(/Scores:\s*(.*)\nTotal:\s*(.*)\nSuggestion:\s*((.|\n)*?)(\n[A-Z]|$)/i);
-    
-    if (match) {
-      const scores = match[1].trim();
-      const total = match[2].trim();
-      const suggestion = match[3].trim().replace(/\n+/g, " ");
-      results += `👤 ${name.trim()}\nScores: ${scores}\nTotal: ${total}\nSuggestion: ${suggestion}\n-----------------------------\n`;
-      resultsCSV.push([name.trim(), scores, total, suggestion]);
-    } else {
-      results += `👤 ${name.trim()}\n❗ Could not parse the response properly.\n-----------------------------\n`;
+        const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ inputs: prompts[i] })
+        });
+
+        const json = await response.json();
+        const text = json[0]?.generated_text || "";
+		const match = text.match(/Scores:\s*([\d,\s]+)\s*Total:\s*(\d+\/\d+)\s*Suggestion:\s*([\s\S]*?)(?:\n-{3,}|$)/);
+
+        if (match) {
+          scores = match[1].trim();
+          total = match[2].trim();
+          suggestion = match[3].trim();
+        }
+
+        resultsCSV.push([name, answer, scores, total, suggestion]);
+        const scoreClass = getScoreColorClass(total.split("/")[0], rubric.length * 2);
+        tableHTML += `<tr class="${scoreClass}"><td>${name}</td><td>${answer}</td><td>${scores}</td><td>${total}</td><td>${suggestion}</td></tr>`;
+
+        labels.push(name);
+        data.push(Number(total.split("/")[0]));
+      }
+
+      tableHTML += `</table>`;
+      outputDiv.innerHTML = tableHTML;
+      spinner.style.display = 'none';
+
+      new Chart(chartCanvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Scores',
+            data: data,
+            backgroundColor: '#1a73e8'
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: rubric.length * 2
+            }
+          }
+        }
+      });
     }
-  }
-
-  outputDiv.innerText = results;
-}
-
 
     function exportCSV() {
       let csvContent = "data:text/csv;charset=utf-8," +
@@ -152,6 +295,8 @@ Charlie: It helps plants and gives oxygen to animals.</textarea>
       document.body.appendChild(link);
       link.click();
     }
+
+    window.onload = populateDefaultRubrics;
   </script>
 </body>
 </html>
