@@ -60,9 +60,6 @@
   <div class="container">
     <h1>🧠 Student Answer Evaluator (POC)</h1>
 
-    <label for="token">🔑 Hugging Face API Token</label>
-    <input type="password" id="token" placeholder="Enter your Hugging Face API token" />
-
     <label for="model">🤖 Choose Model</label>
     <select id="model">
       <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral 7B Instruct</option>
@@ -91,20 +88,17 @@ Charlie: It helps plants and gives oxygen to animals.</textarea>
   </div>
 
   <script>
+    // Embed your Hugging Face token here for POC (for production use environment variables)
+    const HUGGINGFACE_API_TOKEN = "hf_YourActualTokenHere";
     let resultsCSV = [['Name','Scores','Total','Suggestion']];
 
     async function evaluateAnswers() {
-      const token = document.getElementById("token").value;
+      const token = HUGGINGFACE_API_TOKEN;
       const model = document.getElementById("model").value;
       const question = document.getElementById("question").value;
       const rubric = document.getElementById("rubric").value.split('\n').filter(Boolean);
       const rawAnswers = document.getElementById("answers").value.split('\n');
       const outputDiv = document.getElementById("results");
-
-      if (!token) {
-        alert("Please enter your Hugging Face API token.");
-        return;
-      }
 
       outputDiv.innerHTML = "⏳ Evaluating... Please wait...";
       resultsCSV = [['Name','Scores','Total','Suggestion']];
@@ -127,7 +121,11 @@ Charlie: It helps plants and gives oxygen to animals.</textarea>
           body: JSON.stringify({ inputs: prompt })
         });
 
-        let resultText = await response.text();
+        let json = await response.json();
+        let fullText = json[0]?.generated_text || "";
+        let resultText = fullText.split("Scores:").pop();
+        resultText = "Scores:" + resultText.trim();
+
         results += `👤 ${name.trim()}\n${resultText}\n-----------------------------\n`;
 
         const match = resultText.match(/Scores: (.*)\nTotal: (.*)\nSuggestion: (.*)/);
